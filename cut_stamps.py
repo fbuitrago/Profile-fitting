@@ -26,6 +26,7 @@ def ids_as_str(ids):
     return ids
 
 
+which_sample = "low_z" #"high_z"
 path_img = ["/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-S
             "/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-N
             "/mnt/disk2/fb/candels/cosmos/","/mnt/disk1/fb/", #COSMOS
@@ -37,17 +38,16 @@ path_rms = ["/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-S
             "/mnt/disk2/fb/candels/before_jun_2013/uds/uds_dr10/","/mnt/disk1/fb/", #UDS
             "/mnt/disk1/fb/","/mnt/disk1/fb/"] #EGS
 path_cat = "/mnt/disk1/fb/massive_disks/"
-name_img = ["hlsp_hlf_hst_wfc3-60mas_goodss_f160w_v1.0_sci.fits","hlsp_hlf_hst_acs-30mas_goodss_f814w_v1.0_sci.fits", #GOODS-S
+name_img = ["hlsp_hlf_hst_wfc3-60mas_goodss_f160w_v1.5_sci.fits","hlsp_hlf_hst_acs-30mas_goodss_f814w_v1.5_sci.fits", #GOODS-S
             "hlsp_candels_hst_wfc3_gn-tot-60mas_f160w_v1.0_drz.fits","goodsn_all_acs_wfc_f814w_030mas_v2.0_drz.fits", #GOODS-N
             "hlsp_candels_hst_wfc3_cos-tot_f160w_v1.0_drz.fits","hlsp_candels_hst_acs_cos-tot_f814w_v1.0_drz.fits", #COSMOS
             "hlsp_candels_hst_wfc3_uds-tot_f160w_v1.0_drz.fits","hlsp_candels_hst_acs_uds-tot_f814w_v1.0_drz.fits", #UDS
             "hlsp_candels_hst_wfc3_egs-tot-60mas_f160w_v1.0_drz.fits","egs_all_acs_wfc_f814w_030mas_v1.1_drz.fits"] #EGS
-name_rms = ["hlsp_hlf_hst_wfc3-60mas_goodss_f160w_v1.0_wht.fits","hlsp_hlf_hst_acs-30mas_goodss_f814w_v1.0_wht.fits", #GOODS-S
+name_rms = ["hlsp_hlf_hst_wfc3-60mas_goodss_f160w_v1.5_wht.fits","hlsp_hlf_hst_acs-30mas_goodss_f814w_v1.5_wht.fits", #GOODS-S
             "hlsp_candels_hst_wfc3_gn-tot-60mas_f160w_v1.0_rms.fits","goodsn_all_acs_wfc_f814w_030mas_v2.0_rms.fits", #GOODS-N
             "hlsp_candels_hst_wfc3_cos-tot_f160w_v1.0_rms.fits","hlsp_candels_hst_acs_cos-tot_f814w_v1.0_rms.fits", #COSMOS
             "hlsp_candels_hst_wfc3_uds-tot_f160w_v1.0_wht.fits","hlsp_candels_hst_acs_uds-tot_f814w_v1.0_wht.fits", #UDS
             "hlsp_candels_hst_wfc3_egs-tot-60mas_f160w_v1.0_rms.fits","egs_all_acs_wfc_f814w_030mas_v1.1_rms.fits"] #EGS
-which_sample = "high_z" #"low_z"
 
 
 name_cat = "massive_"+which_sample+"_bin.cat"
@@ -130,11 +130,33 @@ for kk in range(len(name_img)):
     for ii in range(len(indices)):
         montage.mSubimage_pix(path_img[kk]+name_img[kk],new_galaxy_stamps_folder+gal[indices[ii]]+".fits"    , x0[ii], y0[ii], side)
         montage.mSubimage_pix(path_rms[kk]+name_rms[kk],new_sigma_stamps_folder +gal[indices[ii]]+"_rms.fits", x0[ii], y0[ii], side)
+
+        #identifying wrong pixels in the rms image (either NaN or Inf; also the ones equal to 0, i.e. beyond borders)
+        new_img = fits.open(new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits")
+        new_rms = np.array(new_img[0].data)
+        #---
+        bad_rms_pixels = np.isfinite(new_rms)
+        mask_bad_rms_pixels = np.logical_not(bad_rms_pixels)
+        #---
+        #beyond_borders_pixels = new_rms == 0.
+        #mask_beyond_borders = np.logical_not(beyond_borders_pixels)
+        #---
+        mask_bad_rms_pixels = mask_bad_rms_pixels #or mask_beyond_borders
         
         #in case we are managing the weight image instead of the rms image
-        if name_rms[kk].find("wht"):
-            new_img = fits.open(new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits")
-            fits.writeto(       new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits",1./np.sqrt(new_img[0].data),new_img[0].header,clobber=True)
+        if name_rms[kk].find("wht") != -1:
+            new_rms = 1./np.sqrt(new_rms)
+        else:
+            new_rms = new_rms
+
+        #---repeating this part while I cannot flag the pixels with 0 value before
+        bad_rms_pixels = np.isfinite(new_rms)
+        mask_bad_rms_pixels = np.logical_not(bad_rms_pixels)
+        #---
+
+        #writing the rms image
+        new_rms[mask_bad_rms_pixels] = 99999999. #flagging bad pixels
+        fits.writeto(       new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits",new_rms,new_img[0].header,clobber=True)
             
     #saving the coordinates where I cut the galaxies from
     ascii.write([gal[indices],x0,x1,y0,y1],names=['id','x0','x1','y0','y1'],output=filt+"_"+field+"_"+which_sample+".coo",Writer = ascii.CommentedHeader)
