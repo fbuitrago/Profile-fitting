@@ -17,6 +17,7 @@ from astropy.io import fits
 from astropy import wcs
 from astropy.io import ascii
 import montage_wrapper as montage
+from astropy.table import Table
 
 
 def ids_as_str(ids):
@@ -26,7 +27,7 @@ def ids_as_str(ids):
     return ids
 
 
-which_sample = "high_z" #"low_z"
+which_sample = "low_z" #"high_z"
 path_img = ["/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-S
             "/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-N
             "/mnt/disk2/fb/candels/cosmos/","/mnt/disk1/fb/", #COSMOS
@@ -53,14 +54,19 @@ name_rms = ["hlsp_hlf_hst_wfc3-60mas_goodss_f160w_v1.5_wht.fits","hlsp_hlf_hst_a
 name_cat = "massive_"+which_sample+"_bin.cat"
 
 #reading the catalog
-cat = ascii.read(path_cat+name_cat)
-gal    = np.array(cat[0][:],dtype = str)
-ra     = np.array(cat[1][:],dtype = float)
-dec    = np.array(cat[2][:],dtype = float)
-region = np.array(cat[3][:],dtype = str)
+tt = Table.read(name_cat, names=('ids', 'ra', 'dec', 'field'), format='ascii.commented_header')
+gal = ids_as_str(tt['ids'])
+ra  = tt['ra']
+dec = tt['dec']
+region = tt['field']
+#--------------------------------
+#cat = ascii.read(path_cat+name_cat)
+#gal    = np.array(cat[0][:],dtype = str)
+#ra     = np.array(cat[1][:],dtype = float)
+#dec    = np.array(cat[2][:],dtype = float)
+#region = np.array(cat[3][:],dtype = str)
 #--------------------------------
 #gal,ra,dec = np.loadtxt(path_cat+name_cat, dtype = float, unpack = True) #OJO: the names are also floats!
-#gal = ids_as_str(gal)
 #--------------------------------
 #table=numpy.genfromtxt("massive_low_z_bin_uds.cat", dtype='U', comments='#')
 
@@ -95,7 +101,7 @@ for kk in range(len(name_img)):
     coo = []
     indices = [] #to know which galaxies from the whole gal vector
     #selecting galaxies that belong to our field only
-    for ii in range(len(gal)):
+    for ii in range(gal.size):
         if region[ii] == field:
             coo.append([ra[ii],dec[ii]])
             indices.append(ii) 
@@ -127,12 +133,15 @@ for kk in range(len(name_img)):
     y1 = np.rint(y1); y1 = y1.astype(int)
 
     #creating the galaxy stamps
+    new_names_array = np.array([], dtype=str)
     for ii in range(len(indices)):
-        montage.mSubimage_pix(path_img[kk]+name_img[kk],new_galaxy_stamps_folder+gal[indices[ii]]+".fits"    , x0[ii], y0[ii], side)
-        montage.mSubimage_pix(path_rms[kk]+name_rms[kk],new_sigma_stamps_folder +gal[indices[ii]]+"_rms.fits", x0[ii], y0[ii], side)
+        new_name = gal[indices[ii]]+"_"+region[indices[ii]]
+        new_names_array = np.append(new_names_array,new_name)
+        montage.mSubimage_pix(path_img[kk]+name_img[kk],new_galaxy_stamps_folder+new_name+".fits"    , x0[ii], y0[ii], side)
+        montage.mSubimage_pix(path_rms[kk]+name_rms[kk],new_sigma_stamps_folder +new_name+"_rms.fits", x0[ii], y0[ii], side)
 
         #identifying wrong pixels in the rms image (either NaN or Inf; also the ones equal to 0, i.e. beyond borders)
-        new_img = fits.open(new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits")
+        new_img = fits.open(new_sigma_stamps_folder+new_name+"_rms.fits")
         new_rms = np.array(new_img[0].data)
         #---
         bad_rms_pixels = np.isfinite(new_rms)
@@ -150,7 +159,8 @@ for kk in range(len(name_img)):
 
         #writing the rms image
         new_rms[mask_bad_rms_pixels] = 99999999. #flagging bad pixels
-        fits.writeto(       new_sigma_stamps_folder+gal[indices[ii]]+"_rms.fits",new_rms,new_img[0].header,clobber=True)
+        fits.writeto(       new_sigma_stamps_folder+new_name+"_rms.fits",new_rms,new_img[0].header,clobber=True)
             
     #saving the coordinates where I cut the galaxies from
-    ascii.write([gal[indices],x0,x1,y0,y1],names=['id','x0','x1','y0','y1'],output=filt+"_"+field+"_"+which_sample+".coo",Writer = ascii.CommentedHeader)
+    new_table = Table([new_names_array,x0,x1,y0,y1],names=['id','x0','x1','y0','y1'])
+    new_table.write(filt+"_"+field+"_"+which_sample+".coo", format = "ascii.commented_header")
