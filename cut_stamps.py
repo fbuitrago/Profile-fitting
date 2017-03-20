@@ -26,7 +26,7 @@ def ids_as_str(ids):
     return ids
 
 
-which_sample = "low_z" #"high_z"
+which_sample = "high_z" #"low_z"
 path_img = ["/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-S
             "/mnt/disk1/fb/","/mnt/disk1/fb/", #GOODS-N
             "/mnt/disk2/fb/candels/cosmos/","/mnt/disk1/fb/", #COSMOS
@@ -136,23 +136,17 @@ for kk in range(len(name_img)):
         new_rms = np.array(new_img[0].data)
         #---
         bad_rms_pixels = np.isfinite(new_rms)
-        mask_bad_rms_pixels = np.logical_not(bad_rms_pixels)
+        mask_bad_rms_pixels = np.logical_not(bad_rms_pixels) #False -> Good pixels; True -> Bad pixels
         #---
-        #beyond_borders_pixels = new_rms == 0.
-        #mask_beyond_borders = np.logical_not(beyond_borders_pixels)
+        mask_beyond_borders = new_rms == 0.  #False -> Pixels within borders; True -> Pixels beyond the borders
         #---
-        mask_bad_rms_pixels = mask_bad_rms_pixels #or mask_beyond_borders
+        mask_bad_rms_pixels = np.logical_or(mask_bad_rms_pixels,mask_beyond_borders) #I join the two previous masks
         
         #in case we are managing the weight image instead of the rms image
         if name_rms[kk].find("wht") != -1:
             new_rms = 1./np.sqrt(new_rms)
         else:
             new_rms = new_rms
-
-        #---repeating this part while I cannot flag the pixels with 0 value before
-        bad_rms_pixels = np.isfinite(new_rms)
-        mask_bad_rms_pixels = np.logical_not(bad_rms_pixels)
-        #---
 
         #writing the rms image
         new_rms[mask_bad_rms_pixels] = 99999999. #flagging bad pixels
