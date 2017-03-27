@@ -23,10 +23,10 @@ def write_galfit_script(galaxy,star,mask,x_size,y_size,zeropoint,exptime,pixel_s
     file = open("./"+galaxy+"/"+galfit_script, "w")
 
     file.write("# IMAGE PARAMETERS\n")
-    file.write(" A) ../../galaxy_images/"+str(galaxy)+".fits  # Input Data image (FITS file)\n")
+    file.write(" A) ../../../galaxy_images/"+str(galaxy)+".fits  # Input Data image (FITS file)\n")
     file.write(" B) "+str(galaxy)+"_"+str(star)+"_"+str(mask)+".fits  # Name for the output image\n")
-    file.write(" C) ../../sigma_images/"+str(galaxy)+"_rms.fits  # Noise image name (made from data if blank or 'none')\n")
-    file.write(" D) ../../star_images/"+str(star)+".fits # Input PSF image and (optional) diffusion kernel\n")
+    file.write(" C) ../../../sigma_images/"+str(galaxy)+"_rms.fits  # Noise image name (made from data if blank or 'none')\n")
+    file.write(" D) ../../../star_images/"+str(star)+".fits # Input PSF image and (optional) diffusion kernel\n")
     file.write(" E) 1  # PSF oversampling factor relative to data\n")
     file.write(" F) "+str(galaxy)+"_"+str(mask)+".fits  # Pixel mask (ASCII file or FITS file with non-0 values)\n")
     file.write(" G) constraints"+"_"+str(mask)+".txt  # Parameter constraint file (ASCII)\n")

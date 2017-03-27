@@ -7,8 +7,8 @@ from astropy.io import fits
 import numpy as np
 import os
 import pdb
-import run_sextractor
 import my_python_library
+from astropy.table import Table
 #===========================
 from run_sextractor import run_sextractor
 from read_sextractor_output import read_sextractor_output
@@ -20,6 +20,7 @@ from create_constraints_file import create_constraints_file
 from removing_faint_objs import removing_faint_objs
 from write_galfit_script import write_galfit_script
 from is_sex_file_empty import is_sex_file_empty
+from config_different_fields import config_different_fields
 
 
 #definitions=======================
@@ -33,6 +34,8 @@ enlarge_masks = 3.
 threshold_for_faint = 3. #mag greater than the target galaxy
 pixel_scale = 0.06 #[arcsec/pix]
 exptime = 1. #it will be override by the EXPTIME keyword in the header (if it exists)
+different_fields = True
+camera = "WFC3"
 #==================================
 
 #PSF stars=========================
@@ -43,19 +46,24 @@ stars = np.array(["star_h_band_candels"],dtype=str) #don't add extension .fits
 cwd = os.getcwd()
 path, last_folder = os.path.split(cwd)
 cpu_number = last_folder.replace("cpu","")
-gal,ra,dec = np.loadtxt("./aux_files/gals_cpu"+cpu_number+".cat", dtype = float, unpack = True)
-ids = my_python_library.ids_as_str(gal)
+catalog_name = "./aux_files/gals_cpu"+cpu_number+".cat"
+#reading the catalog
+tt = Table.read(catalog_name, names=('ids','nothing'), format='ascii.commented_header')
+ids = tt['ids']
 
 #for each galaxy
 for ii in range(ids.size):
     galaxy = ids[ii]
-
+    
     #reading the galaxy
-    img = fits.open("./galaxy_images/"+galaxy+".fits")
+    img = fits.open("../../galaxy_images/"+galaxy+".fits")
     header = img[0].header
     x_size  = header['NAXIS1']
     y_size  = header['NAXIS2']
-    exptime = header['EXPTIME']
+    
+    #if using different fields
+    if different_fields == True:
+        zeropoint, pixel_scale, exptime, stars = config_different_fields(galaxy, camera, header)
 
     #generating subfolders for each galaxy
     if not os.path.exists(galaxy):

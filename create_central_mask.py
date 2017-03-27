@@ -43,7 +43,7 @@ def create_central_mask(galaxy,sex_output,target,enlargemask):
     kron  = sex_output[10,:]
     a_image = sex_output[11,:]
 
-    img = fits.open("./galaxy_images/"+galaxy+".fits")
+    img = fits.open("../../galaxy_images/"+galaxy+".fits")
     header = img[0].header
     x_size = header['NAXIS1']
     y_size = header['NAXIS2']
