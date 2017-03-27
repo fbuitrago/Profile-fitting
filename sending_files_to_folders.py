@@ -23,8 +23,9 @@ base_path = "./high_z_galaxy_images/"
 
 
 ids = os.listdir(base_path+"./galaxy_images/")
-ids[:] = [ele[:-2] for ele in ids] #I remove the .fits extension
+ids[:] = [ele[:-5] for ele in ids] #I remove the .fits extension
 ids = np.array(ids, dtype = str)
+ids = np.sort(ids)
 
 #tt = Table.read("massive_low_z_bin.cat", format = "ascii.commented_header", names=('ids', 'ra', 'dec', 'field'))
 #ids = ids_as_str(tt['ids'])
@@ -54,19 +55,20 @@ for ii in range(1,no_cpus+1): #+1 because range upper limit otherwise is not inc
     #sending files to folders
     final_value = no_gals_per_directory*ii
     for jj in range(start_value,final_value): #+1 because range upper limit otherwise is not inclusive (it does -1)
+
         if ii is not no_cpus:
             #copyfile("./galaxy_images/"+ids[jj]+".fits"    ,cpu_folder+"/galaxy_images/"+ids[jj]+".fits")
             #copyfile("./sigma_images/" +ids[jj]+"_rms.fits",cpu_folder+"/sigma_images/" +ids[jj]+"_rms.fits")
-            if jj is final_value-1: #for the last element
-                data = Table([ids[start_value:final_value]], names=['gal'])
+            if jj == final_value-1: #for the last element
+                data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','nothing'])
                 data.write(cpu_cat, format = "ascii.commented_header")
                 start_value = final_value
         else:
             final_value = no_galaxies #because I will need to add all the restant galaxies to the final folder
             #copyfile("./galaxy_images/"+ids[jj]+".fits"    ,cpu_folder+"/galaxy_images/"+ids[jj]+".fits")
             #copyfile("./sigma_images/" +ids[jj]+"_rms.fits",cpu_folder+"/sigma_images/" +ids[jj]+"_rms.fits")
-            if jj is final_value-1: #for the last element 
-                data = Table([ids[start_value:final_value]], names=['gal'])
+            if jj == final_value-1: #for the last element 
+                data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','nothing'])
                 data.write(cpu_cat, format = "ascii.commented_header")
                 #start_value = final_value -> This is not necessary, as it is the final folder
         
