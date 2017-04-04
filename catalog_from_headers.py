@@ -5,6 +5,8 @@ import os
 import pdb
 import string
 from astropy.table import Table
+#===========================
+from config_different_fields_no_headers import config_different_fields_no_headers
 
 
 def detect_bad(param):
@@ -29,26 +31,28 @@ def detect_bad(param):
 
 
 #knowing how many elements my datacube will have
-stars = np.array(["star_h_band_candels"],dtype=str) #CHANGE IF NECESSARY #don't add extension .fits
-#=============================
-flag_mask_central = True #CHANGE IF NECESSARY #if False we skip the creation of central mask (a mask containing only the central obj, good for overcrowded fields)
+different_fields = True
+camera = "WFC3"
+flag_mask_central = True ##if False we skip the creation of central mask (a mask containing only the central obj, good for overcrowded fields)
+single_or_double = 1  #single (1) or double (2) component fit
+ini_conds = ""#grid initial conditions "_1","_2",...
+
+#knowing the galaxies to run GALFIT
+cwd = os.getcwd()
+path, last_folder = os.path.split(cwd)
+cpu_number = last_folder.replace("cpu","")
+catalog_name = "./aux_files/gals_cpu"+cpu_number+".cat"
+#reading the catalog
+tt = Table.read(catalog_name, names=('ids','nothing'), format='ascii.commented_header')
+galaxies = tt['ids']
+
+#defining the masks
 masks = []
 if flag_mask_central == True:
     masks = ["normal_mask","central_mask"]
 else:
     masks = ["normal_mask"]
 masks = np.array(masks,dtype=str)
-#==============================
-single_or_double = 1  #CHANGE IF NECESSARY #single (1) or double (2) component fit
-#==============================
-ini_conds = "" #CHANGE IF NECESSARY #grid initial conditions "_1","_2",...
-
-#knowing the galaxies to run GALFIT
-cwd = os.getcwd()
-path, last_folder = os.path.split(cwd)
-cpu_number = last_folder.replace("cpu","")
-ids,ra,dec = np.loadtxt("./aux_files/gals_cpu"+cpu_number+".cat", dtype = float, unpack = True)
-galaxies = my_python_library.ids_as_str(ids)
 
 #reading the headers
 gal_list = []
@@ -65,11 +69,17 @@ for ii in range(len(galaxies)):
                                       'xc2': [], 'yc2': [], 'mag2': [], 'mag_flag_special2': [], 'mag_flag_fixed2': [],
                're2': [], 're_flag_special2': [], 're_flag_fixed2': [], 'nn2': [], 'nn_flag_special2': [], 'nn_flag_fixed2': [], 
                'ar2': [], 'ar_flag_special2': [], 'ar_flag_fixed2': [], 'pa2': [], 'pa_flag_special2': [], 'pa_flag_fixed2': []}
+               
     gal['id'] = galaxies[ii]
+    #if using different fields
+    if different_fields == True:
+        zeropoint, pixel_scale, stars = config_different_fields_no_headers(gal['id'], camera)
+    
     for jj in range(len(stars)):
         for kk in range(len(masks)):
             #for cont in range(len(ini_conds)):
             filename = "./"+galaxies[ii]+"/"+galaxies[ii]+"_"+stars[jj]+"_"+masks[kk]+".fits"
+            print(filename)
             if os.path.exists(filename) == True:
                 data = fits.open(filename)
                 hdr = data[2].header
@@ -125,6 +135,7 @@ for ii in range(len(galaxies)):
                     gal["pa1"] .append(float('NaN'));  gal["pa_flag_special2"].append(float('NaN'));  gal["pa_flag_fixed2"].append(float('NaN'))
     gal_list.append(gal)
 
+    pdb.set_trace()
 #creating vectors to contain the information in the headers
 galaxy = {}
 for gal_dict in gal_list:
