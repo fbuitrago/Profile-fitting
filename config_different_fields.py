@@ -4,6 +4,7 @@ By Fernando Buitrago (fbuitrago@gmail.com)
 """
 
 import numpy as np
+import pdb
 
 
 def config_different_fields(galaxy,camera,header):
@@ -54,5 +55,5 @@ def config_different_fields(galaxy,camera,header):
             zeropoint = 25.96 #CANDELS website
             exptime = header["EXPTIME"] #exptime = 1600. #CANDELS website
             stars = np.array(["gs_deep_f160w_v0.5_psf"],dtype=str) #don't add extension .fits
-            
-        return(zeropoint, pixel_scale, exptime, stars)
+     
+    return(zeropoint, pixel_scale, exptime, stars)
