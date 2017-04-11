@@ -30,7 +30,10 @@ def detect_bad(param):
     return(param,flag_special,flag_fixed)
 
 
-#knowing how many elements my datacube will have
+#ASSUMPTION
+#All the even analyses are done with the normal masks
+
+#CONSTANTS
 different_fields = True
 camera = "WFC3"
 flag_mask_central = True ##if False we skip the creation of central mask (a mask containing only the central obj, good for overcrowded fields)
@@ -53,6 +56,42 @@ if flag_mask_central == True:
 else:
     masks = ["normal_mask"]
 masks = np.array(masks,dtype=str)
+
+#defining vectors for the final results
+vector_gal_name          = np.array([])
+vector_flag_obj_detected = np.array([])
+if single_or_double == 1:
+    vector_mag      = np.array([])
+    vector_re       = np.array([])
+    vector_nn       = np.array([])
+    vector_ar       = np.array([])
+    vector_pa       = np.array([])
+    vector_magerr   = np.array([])
+    vector_reerr    = np.array([])
+    vector_nnerr    = np.array([])
+    vector_arerr    = np.array([])
+    vector_paerr    = np.array([])
+else:
+    vector_mag1     = np.array([])
+    vector_re1      = np.array([])
+    vector_nn1      = np.array([])
+    vector_ar1      = np.array([])
+    vector_pa1      = np.array([])
+    vector_magerr1  = np.array([])
+    vector_reerr1   = np.array([])
+    vector_nnerr1   = np.array([])
+    vector_arerr1   = np.array([])
+    vector_paerr1   = np.array([])
+    vector_mag2     = np.array([])
+    vector_re2      = np.array([])
+    vector_nn2      = np.array([])
+    vector_ar2      = np.array([])
+    vector_pa2      = np.array([])
+    vector_magerr2  = np.array([])
+    vector_reerr2   = np.array([])
+    vector_nnerr2   = np.array([])
+    vector_arerr2   = np.array([])
+    vector_paerr2   = np.array([])
 
 #reading the headers
 gal_list = []
@@ -135,122 +174,166 @@ for ii in range(len(galaxies)):
                     gal["pa1"] .append(float('NaN'));  gal["pa_flag_special2"].append(float('NaN'));  gal["pa_flag_fixed2"].append(float('NaN'))
     gal_list.append(gal)
 
-    pdb.set_trace()
 #creating vectors to contain the information in the headers
 galaxy = {}
 for gal_dict in gal_list:
     galaxy.update(gal_dict)
 
-    chi2_vector = np.array( galaxy["chi2"] )
-    filter_chi2 = chi2_vector == chi2_vector.min()
-    index_best_chi2 = np.where(filter_chi2)
-
+    #converting everything into numpy vectors (_array suffix)
+    chi2_array   = np.array( galaxy["chi2"] )
+    chi2nu_array = np.array( galaxy["chi2nu"] )
     if single_or_double == 1:
-        is_good_analysis = gal["mag_flag_special"] + gal["re_flag_special"] + gal["nn_flag_special"] + gal["ar_flag_special"] + gal["pa_flag_special"]
+        mag_flag_special_array = np.array(gal["mag_flag_special"])
+        re_flag_special_array  = np.array(gal["re_flag_special"])
+        nn_flag_special_array  = np.array(gal["nn_flag_special"])
+        ar_flag_special_array  = np.array(gal["ar_flag_special"])
+        pa_flag_special_array  = np.array(gal["pa_flag_special"])             
     else:
-        is_good_analysis = gal["mag_flag_special1"] + gal["re_flag_special1"] + gal["nn_flag_special1"] + gal["ar_flag_special1"] + gal["pa_flag_special1"] + \
-                           gal["mag_flag_special2"] + gal["re_flag_special2"] + gal["nn_flag_special2"] + gal["ar_flag_special2"] + gal["pa_flag_special2"]
+        mag_flag_special1_array = np.array(gal["mag_flag_special1"])
+        re_flag_special1_array  = np.array(gal["re_flag_special1"])
+        nn_flag_special1_array  = np.array(gal["nn_flag_special1"])
+        ar_flag_special1_array  = np.array(gal["ar_flag_special1"])
+        pa_flag_special1_array  = np.array(gal["pa_flag_special1"]) 
+        mag_flag_special2_array = np.array(gal["mag_flag_special2"])
+        re_flag_special2_array  = np.array(gal["re_flag_special2"])
+        nn_flag_special2_array  = np.array(gal["nn_flag_special2"])
+        ar_flag_special2_array  = np.array(gal["ar_flag_special2"])
+        pa_flag_special2_array  = np.array(gal["pa_flag_special2"]) 
 
-    #if possible, choose among the fits with the normal masks. If no good fit there, use chi2nu to choose the best fit among all fits
-    if ( (int(index_best_chi2[0]) % 2)==0 and is_good_analysis==0 ):
+    #to see which analyses converge from the ones with the normal mask
+    if single_or_double == 1:
+        is_good_analysis = mag_flag_special_array[::2] + mag_flag_special_array[::2] + mag_flag_special_array[::2] + mag_flag_special_array[::2] + mag_flag_special_array[::2]
+    else:
+        is_good_analysis = mag_flag_special1_array[::2] + mag_flag_special1_array[::2] + mag_flag_special1_array[::2] + mag_flag_special1_array[::2] + mag_flag_special1_array[::2] + \
+                           mag_flag_special2_array[::2] + mag_flag_special2_array[::2] + mag_flag_special2_array[::2] + mag_flag_special2_array[::2] + mag_flag_special2_array[::2]
+
+    if np.any( np.logical_not(is_good_analysis) ): #if any of the normal fits went well (NB. Good analyses have the value 0, that's why I use the logical not)
+        analyses_to_take = np.ones(len(is_good_analysis)*2) #I create an array full of False elements
+        cont_in_is_good_analysis = 0
+
+        for index_ele_to_take,ele_to_take in enumerate(analyses_to_take):
+            if not (index_ele_to_take % 2): #for those analyses that were done with the normal mask
+                analyses_to_take[index_ele_to_take] = is_good_analysis[cont_in_is_good_analysis] #I add the value of is_good_analysis for this very element
+                cont_in_is_good_analysis = cont_in_is_good_analysis+1
+        #the final analyses_to_take has the form [is_good_analysis[0], 1, is_good_analysis[1], 1, ...]
+        #by doing the logical_not all the good analyses (0 value) will became 1 and the others 0, and I can convert everything to booleans
+
+        analyses_to_take = np.logical_not(analyses_to_take)
+
+        analyses_to_take_boolean = analyses_to_take.astype(bool) #I convert it to boolean
+        chi2_to_take = chi2_array[analyses_to_take_boolean] #I take into account only chi2_to_take
+        if len(chi2_to_take) > 1:
+            filter_chi2 = chi2_array == chi2_to_take.min() #I get the minimun in chi2_to_take
+        else:
+            filter_chi2 = analyses_to_take_boolean #if only a single valid element, I take it as the best analysis
         filter_result = filter_chi2
     else:
-        chi2nu_vector = np.array( galaxy["chi2nu"] )
-        filter_chi2nu = chi2nu_vector == chi2nu_vector.min()
+        filter_chi2nu = chi2nu_array == chi2nu_array.min() #if no good analysis for the normal masks, I take all masks
         filter_result = filter_chi2nu
-    index_best_result = np.where(filter_result)
-    index = int(index_best_result[0])
 
-    gal_name = galaxy["id"]
-    img = fits.open("../galaxy_images/"+gal_name+".fits")
+
+    index_best_result = np.where(filter_result)
+    index_best_result = index_best_result[0] #this way, I remove the tuple I get with the output of np.where
+    if index_best_result.size > 1: index_best_result = index_best_result[0] #this way I am sure I get the first element if there are several
+    index_best_result = int(index_best_result)  #to be sure it is an integer
+    index = index_best_result #I will repeat this index a lot, so I make the name shorter
+
+
+    vector_gal_name = np.append(vector_gal_name,galaxy["id"])
+    #is there any object in the central pixels of the image?
+    img = fits.open("../../galaxy_images/"+galaxy["id"]+".fits")
     hdr = img[0].header
-    xc = hdr["NAXIS1"]
-    yc = hdr["NAXIS2"]
+    xc = hdr["NAXIS1"]/2.
+    yc = hdr["NAXIS2"]/2.
+    #-------
     if single_or_double == 1:
-        dist_target = np.sqrt( (xc-galaxy["xc"][index])**2. + (yc-galaxy["yc"][index])**2. )
+        dist_target = np.sqrt( (xc-float(galaxy["xc"][index]))**2. + (yc-float(galaxy["yc"][index]))**2. )
     else:
-        dist_target = np.sqrt( (xc-galaxy["xc1"][index])**2. + (yc-galaxy["yc1"][index])**2. )
+        dist_target = np.sqrt( (xc-float(galaxy["xc1"][index]))**2. + (yc-float(galaxy["yc1"][index]))**2. )
+    #-------
     if dist_target >  5.:
         flag_obj_detected = False
     else:
         flag_obj_detected = True
+    vector_flag_obj_detected = np.append(vector_flag_obj_detected,flag_obj_detected)
 
     if flag_obj_detected == True:
         if single_or_double == 1:
-            mag.append( galaxy["mag"][index] )
-            re .append( galaxy["re"][index] )
-            nn .append( galaxy["nn"][index] )
-            ar .append( galaxy["ar"][index] )
-            pa .append( galaxy["pa"][index] )
-            magerr.append( np.std(galaxy["mag"]) )
-            reerr .append( np.std(galaxy["re"]) )
-            nnerr .append( np.std(galaxy["nn"]) )
-            arerr .append( np.std(galaxy["ar"]) )
-            paerr .append( np.std(galaxy["pa"]) )
+            vector_mag = np.append(vector_mag, galaxy["mag"][index] )
+            vector_re  = np.append(vector_re,  galaxy["re"][index] )
+            vector_nn  = np.append(vector_nn,  galaxy["nn"][index] )
+            vector_ar  = np.append(vector_ar,  galaxy["ar"][index] )
+            vector_pa  = np.append(vector_pa,  galaxy["pa"][index] )
+            vector_magerr = np.append(vector_magerr, np.std(galaxy["mag"]) )
+            vector_reerr  = np.append(vector_reerr,  np.std(galaxy["re"]) )
+            vector_nnerr  = np.append(vector_nnerr,  np.std(galaxy["nn"]) )
+            vector_arerr  = np.append(vector_arerr,  np.std(galaxy["ar"]) )
+            vector_paerr  = np.append(vector_paerr,  np.std(galaxy["pa"]) )
         else:
-            mag1.append( galaxy["mag1"][index] )
-            re1 .append( galaxy["re1"][index] )
-            nn1 .append( galaxy["nn1"][index])
-            ar1 .append( galaxy["ar1"][index] )
-            pa1 .append( galaxy["pa1"][index] )
-            magerr1.append( np.std(galaxy["mag1"]) )
-            reerr1 .append( np.std(galaxy["re1"]) )
-            nnerr1 .append( np.std(galaxy["nn1"]) )
-            arerr1 .append( np.std(galaxy["ar1"]) )
-            paerr1 .append( np.std(galaxy["pa1"]) )
-            mag2.append( galaxy["mag2"][index] )
-            re2 .append( galaxy["re2"][index] )
-            nn2 .append( galaxy["nn2"][index] )
-            ar2 .append( galaxy["ar2"][index] )
-            pa2 .append( galaxy["pa2"][index] )
-            magerr2.append( np.std(galaxy["mag2"]) )
-            reerr2 .append( np.std(galaxy["re2"]) )
-            nnerr2 .append( np.std(galaxy["nn2"]) )
-            arerr2 .append( np.std(galaxy["ar2"]) )
-            paerr2 .append( np.std(galaxy["pa2"]) )
+            vector_mag1 = np.append(vector_mag1, galaxy["mag1"][index] )
+            vector_re1  = np.append(vector_re1,  galaxy["re1"][index] )
+            vector_nn1  = np.append(vector_nn1,  galaxy["nn1"][index])
+            vector_ar1  = np.append(vector_ar1,  galaxy["ar1"][index] )
+            vector_pa1  = np.append(vector_pa1,  galaxy["pa1"][index] )
+            vector_mag1err = np.append(vector_mag1err, np.std(galaxy["mag1"]) )
+            vector_reerr1  = np.append(vector_reerr1,  np.std(galaxy["re1"]) )
+            vector_nnerr1  = np.append(vector_nnerr1,  np.std(galaxy["nn1"]) )
+            vector_arerr1  = np.append(vector_arerr1,  np.std(galaxy["ar1"]) )
+            vector_paerr1  = np.append(vector_paerr1,  np.std(galaxy["pa1"]) )
+            vector_mag2 = np.append(vector_mag2, galaxy["mag2"][index] )
+            vector_re2 = np.append(vector_re2,  galaxy["re2"][index] )
+            vector_nn2 = np.append(vector_nn2,  galaxy["nn2"][index] )
+            vector_ar2 = np.append(vector_ar2,  galaxy["ar2"][index] )
+            vector_pa2 = np.append(vector_pa2,  galaxy["pa2"][index] )
+            vector_magerr2 = np.append(vector_magerr2, np.std(galaxy["mag2"]) )
+            vector_reerr2 = np.append(vector_reerr2,  np.std(galaxy["re2"]) )
+            vector_nnerr2 = np.append(vector_nnerr2,  np.std(galaxy["nn2"]) )
+            vector_arerr2 = np.append(vector_arerr2,  np.std(galaxy["ar2"]) )
+            vector_paerr2 = np.append(vector_paerr2,  np.std(galaxy["pa2"]) )
     else:
         if single_or_double == 1:
-            mag.append( float('NaN') )
-            re .append( float('NaN') )
-            nn .append( float('NaN') )
-            ar .append( float('NaN') )
-            pa .append( float('NaN') )
-            magerr.append( float('NaN') )
-            reerr .append( float('NaN') )
-            nnerr .append( float('NaN') )
-            arerr .append( float('NaN') )
-            paerr .append( float('NaN') )
+            vector_mag = np.append(vector_mag, float('NaN') )
+            vector_re  = np.append(vector_re,  float('NaN') )
+            vector_nn  = np.append(vector_nn,  float('NaN') )
+            vector_ar  = np.append(vector_ar,  float('NaN') )
+            vector_pa  = np.append(vector_pa,  float('NaN') )
+            vector_magerr = np.append(vector_magerr, float('NaN') )
+            vector_reerr  = np.append(vector_reerr,  float('NaN') )
+            vector_nnerr  = np.append(vector_nnerr,  float('NaN') )
+            vector_arerr  = np.append(vector_arerr,  float('NaN') )
+            vector_paerr  = np.append(vector_paerr,  float('NaN') )
         else:
-            mag1.append( float('NaN') )
-            re1 .append( float('NaN') )
-            nn1 .append( float('NaN') )
-            ar1 .append( float('NaN') )
-            pa1 .append( float('NaN') )
-            magerr1.append( float('NaN') )
-            reerr1 .append( float('NaN') )
-            nnerr1 .append( float('NaN') )
-            arerr1 .append( float('NaN') )
-            paerr1 .append( float('NaN') )
-            mag2.append( float('NaN') )
-            re2 .append( float('NaN') )
-            nn2 .append( float('NaN') )
-            ar2 .append( float('NaN') )
-            pa2 .append( float('NaN') )
-            magerr2.append( float('NaN') )
-            reerr2 .append( float('NaN') )
-            nnerr2 .append( float('NaN') )
-            arerr2 .append( float('NaN') )
-            paerr2 .append( float('NaN') )
+            vector_mag1 = np.append(vector_mag1, float('NaN') )
+            vector_re1  = np.append(vector_re1,  float('NaN') )
+            vector_nn1  = np.append(vector_nn1,  float('NaN') )
+            vector_ar1  = np.append(vector_ar1,  float('NaN') )
+            vector_pa1  = np.append(vector_pa1,  float('NaN') )
+            vector_mag1err = np.append(vector_mag1err, float('NaN') )
+            vector_reerr1  = np.append(vector_reerr1,  float('NaN') )
+            vector_nnerr1  = np.append(vector_nnerr1,  float('NaN') )
+            vector_arerr1  = np.append(vector_arerr1,  float('NaN') )
+            vector_paerr1  = np.append(vector_paerr1,  float('NaN') )
+            vector_mag2 = np.append(vector_mag2,  float('NaN') )
+            vector_re2  = np.append(vector_re2,  float('NaN') )
+            vector_nn2  = np.append(vector_nn2,  float('NaN') )
+            vector_ar2  = np.append(vector_ar2,  float('NaN') )
+            vector_pa2  = np.append(vector_pa2,  float('NaN') )
+            vector_magerr2 = np.append(vector_magerr2, float('NaN') )
+            vector_reerr2  = np.append(vector_reerr2,  float('NaN') )
+            vector_nnerr2  = np.append(vector_nnerr2,  float('NaN') )
+            vector_arerr2  = np.append(vector_arerr2,  float('NaN') )
+            vector_paerr2  = np.append(vector_paerr2,  float('NaN') )
+
 
 #writing the final catalogs
 if single_or_double == 1:
-    data = Table( [gal_name,mag,magerr,re,reerr,nn,nnerr,ar,arerr,pa,paerr],
-                  names=("gal_id","mag","mag_error","re_pix","re_pix_error","n","n_error","ar","ar_error","pa","pa_error") , Writer = ascii.CommentedHeader)
+    data = Table( [vector_gal_name,vector_mag,vector_magerr,vector_re,vector_reerr,vector_nn,vector_nnerr,vector_ar,vector_arerr,vector_pa,vector_paerr,vector_flag_obj_detected], \
+                  names=("gal_id","mag","mag_error","re_pix","re_pix_error","n","n_error","ar","ar_error","pa","pa_error","flag_obj_detected") )
 else:
-    data = Table( [gal_name1,mag1,magerr1,re1,reerr1,nn1,nnerr,ar1,arerr1,pa1,paerr1,mag2,magerr2,re2,reerr2,nn2,nnerr2,ar2,arerr2,pa2,paerr2],
-                  names=("gal_id1","mag1","mag_error1","re_pix1","re_pix_error1","n1","n_error1","ar1","ar_error1","pa1","pa_error1" \
-                                   "mag2","mag_error2","re_pix2","re_pix_error2","n2","n_error2","ar2","ar_error2","pa2","pa_error2"), \
-                  Writer = ascii.CommentedHeader)
-data.write('results_cpu'+cpu_number+'.cat', format='ascii')
+    data = Table( [vector_gal_name1,vector_mag1,vector_magerr1,vector_re1,vector_reerr1,vector_nn1,vector_nnerr,vector_ar1,vector_arerr1,vector_pa1,vector_paerr1,vector_mag2,vector_magerr2,vector_re2,vector_reerr2,vector_nn2,vector_nnerr2,vector_ar2,vector_arerr2,vector_pa2,vector_paerr2,vector_flag_obj_detected], \
+                  names=("gal_id1","mag1","mag_error1","re_pix1","re_pix_error1","n1","n_error1","ar1","ar_error1","pa1","pa_error1", \
+                                   "mag2","mag_error2","re_pix2","re_pix_error2","n2","n_error2","ar2","ar_error2","pa2","pa_error2", \
+                         "flag_obj_detected") )
+data.write('results_cpu'+cpu_number+'.cat', format='ascii.commented_header')
 
 pdb.set_trace()
