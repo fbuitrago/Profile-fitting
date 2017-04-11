@@ -5,6 +5,7 @@ import os
 import pdb
 import string
 from astropy.table import Table
+from astropy.cosmology import FlatLambdaCDM
 #===========================
 from config_different_fields_no_headers import config_different_fields_no_headers
 
@@ -40,14 +41,18 @@ flag_mask_central = True ##if False we skip the creation of central mask (a mask
 single_or_double = 1  #single (1) or double (2) component fit
 ini_conds = ""#grid initial conditions "_1","_2",...
 
+#moving distances from kpc to arcsec
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+
 #knowing the galaxies to run GALFIT
 cwd = os.getcwd()
 path, last_folder = os.path.split(cwd)
 cpu_number = last_folder.replace("cpu","")
 catalog_name = "./aux_files/gals_cpu"+cpu_number+".cat"
 #reading the catalog
-tt = Table.read(catalog_name, names=('ids','nothing'), format='ascii.commented_header')
+tt = Table.read(catalog_name, names=('ids','zz'), format='ascii.commented_header')
 galaxies = tt['ids']
+zz       = tt['zz']
 
 #defining the masks
 masks = []
@@ -59,50 +64,57 @@ masks = np.array(masks,dtype=str)
 
 #defining vectors for the final results
 vector_gal_name          = np.array([])
+vector_zz                = np.array([])
 vector_flag_obj_detected = np.array([])
 if single_or_double == 1:
-    vector_mag      = np.array([])
-    vector_re       = np.array([])
-    vector_nn       = np.array([])
-    vector_ar       = np.array([])
-    vector_pa       = np.array([])
-    vector_magerr   = np.array([])
-    vector_reerr    = np.array([])
-    vector_nnerr    = np.array([])
-    vector_arerr    = np.array([])
-    vector_paerr    = np.array([])
+    vector_mag       = np.array([])
+    vector_re        = np.array([])
+    vector_re_kpc    = np.array([])
+    vector_nn        = np.array([])
+    vector_ar        = np.array([])
+    vector_pa        = np.array([])
+    vector_magerr    = np.array([])
+    vector_reerr     = np.array([])
+    vector_reerr_kpc = np.array([])
+    vector_nnerr     = np.array([])
+    vector_arerr     = np.array([])
+    vector_paerr     = np.array([])
 else:
-    vector_mag1     = np.array([])
-    vector_re1      = np.array([])
-    vector_nn1      = np.array([])
-    vector_ar1      = np.array([])
-    vector_pa1      = np.array([])
-    vector_magerr1  = np.array([])
-    vector_reerr1   = np.array([])
-    vector_nnerr1   = np.array([])
-    vector_arerr1   = np.array([])
-    vector_paerr1   = np.array([])
-    vector_mag2     = np.array([])
-    vector_re2      = np.array([])
-    vector_nn2      = np.array([])
-    vector_ar2      = np.array([])
-    vector_pa2      = np.array([])
-    vector_magerr2  = np.array([])
-    vector_reerr2   = np.array([])
-    vector_nnerr2   = np.array([])
-    vector_arerr2   = np.array([])
-    vector_paerr2   = np.array([])
+    vector_mag1        = np.array([])
+    vector_re1         = np.array([])
+    vector_re1_kpc     = np.array([])
+    vector_nn1         = np.array([])
+    vector_ar1         = np.array([])
+    vector_pa1         = np.array([])
+    vector_magerr1     = np.array([])
+    vector_reerr1      = np.array([])
+    vector_reerr1_kpc  = np.array([])
+    vector_nnerr1      = np.array([])
+    vector_arerr1      = np.array([])
+    vector_paerr1      = np.array([])
+    vector_mag2        = np.array([])
+    vector_re2         = np.array([])
+    vector_re2_kpc     = np.array([])
+    vector_nn2         = np.array([])
+    vector_ar2         = np.array([])
+    vector_pa2         = np.array([])
+    vector_magerr2     = np.array([])
+    vector_reerr2      = np.array([])
+    vector_reerr2_kpc  = np.array([])
+    vector_nnerr2      = np.array([])
+    vector_arerr2      = np.array([])
+    vector_paerr2      = np.array([])
 
 #reading the headers
 gal_list = []
 for ii in range(len(galaxies)):
     #I start with an empty dictionary
     if single_or_double == 1:
-        gal = {'id': -99, 'chi2': [], 'chi2nu': [], 'xc': [], 'yc': [], 'mag': [], 'mag_flag_special': [], 'mag_flag_fixed': [],
+        gal = {'id': -99, 'zz': [], 'chi2': [], 'chi2nu': [], 'xc': [], 'yc': [], 'mag': [], 'mag_flag_special': [], 'mag_flag_fixed': [],
                're': [], 're_flag_special': [], 're_flag_fixed': [], 'nn': [], 'nn_flag_special': [], 'nn_flag_fixed': [], 
                'ar': [], 'ar_flag_special': [], 'ar_flag_fixed': [], 'pa': [], 'pa_flag_special': [], 'pa_flag_fixed': []}
     else:
-        gal = {'id': -99, 'chi2': [], 'chi2nu': [], 'xc1': [], 'yc1': [], 'mag1': [], 'mag_flag_special1': [], 'mag_flag_fixed1': [],
+        gal = {'id': -99, 'zz': [], 'chi2': [], 'chi2nu': [], 'xc1': [], 'yc1': [], 'mag1': [], 'mag_flag_special1': [], 'mag_flag_fixed1': [],
                're1': [], 're_flag_special1': [], 're_flag_fixed1': [], 'nn1': [], 'nn_flag_special1': [], 'nn_flag_fixed1': [], 
                'ar1': [], 'ar_flag_special1': [], 'ar_flag_fixed1': [], 'pa1': [], 'pa_flag_special1': [], 'pa_flag_fixed1': [],
                                       'xc2': [], 'yc2': [], 'mag2': [], 'mag_flag_special2': [], 'mag_flag_fixed2': [],
@@ -110,9 +122,10 @@ for ii in range(len(galaxies)):
                'ar2': [], 'ar_flag_special2': [], 'ar_flag_fixed2': [], 'pa2': [], 'pa_flag_special2': [], 'pa_flag_fixed2': []}
                
     gal['id'] = galaxies[ii]
+    gal['zz'] = zz[ii]
     #if using different fields
     if different_fields == True:
-        zeropoint, pixel_scale, stars = config_different_fields_no_headers(gal['id'], camera)
+        zeropoint, pix_scale, stars = config_different_fields_no_headers(gal['id'], camera)
     
     for jj in range(len(stars)):
         for kk in range(len(masks)):
@@ -180,25 +193,26 @@ for gal_dict in gal_list:
     galaxy.update(gal_dict)
 
     #converting everything into numpy vectors (_array suffix)
+    zz_array     = np.array( galaxy["zz"] )
     chi2_array   = np.array( galaxy["chi2"] )
     chi2nu_array = np.array( galaxy["chi2nu"] )
     if single_or_double == 1:
-        mag_flag_special_array = np.array(gal["mag_flag_special"])
-        re_flag_special_array  = np.array(gal["re_flag_special"])
-        nn_flag_special_array  = np.array(gal["nn_flag_special"])
-        ar_flag_special_array  = np.array(gal["ar_flag_special"])
-        pa_flag_special_array  = np.array(gal["pa_flag_special"])             
+        mag_flag_special_array = np.array(galaxy["mag_flag_special"])
+        re_flag_special_array  = np.array(galaxy["re_flag_special"])
+        nn_flag_special_array  = np.array(galaxy["nn_flag_special"])
+        ar_flag_special_array  = np.array(galaxy["ar_flag_special"])
+        pa_flag_special_array  = np.array(galaxy["pa_flag_special"])             
     else:
-        mag_flag_special1_array = np.array(gal["mag_flag_special1"])
-        re_flag_special1_array  = np.array(gal["re_flag_special1"])
-        nn_flag_special1_array  = np.array(gal["nn_flag_special1"])
-        ar_flag_special1_array  = np.array(gal["ar_flag_special1"])
-        pa_flag_special1_array  = np.array(gal["pa_flag_special1"]) 
-        mag_flag_special2_array = np.array(gal["mag_flag_special2"])
-        re_flag_special2_array  = np.array(gal["re_flag_special2"])
-        nn_flag_special2_array  = np.array(gal["nn_flag_special2"])
-        ar_flag_special2_array  = np.array(gal["ar_flag_special2"])
-        pa_flag_special2_array  = np.array(gal["pa_flag_special2"]) 
+        mag_flag_special1_array = np.array(galaxy["mag_flag_special1"])
+        re_flag_special1_array  = np.array(galaxy["re_flag_special1"])
+        nn_flag_special1_array  = np.array(galaxy["nn_flag_special1"])
+        ar_flag_special1_array  = np.array(galaxy["ar_flag_special1"])
+        pa_flag_special1_array  = np.array(galaxy["pa_flag_special1"]) 
+        mag_flag_special2_array = np.array(galaxy["mag_flag_special2"])
+        re_flag_special2_array  = np.array(galaxy["re_flag_special2"])
+        nn_flag_special2_array  = np.array(galaxy["nn_flag_special2"])
+        ar_flag_special2_array  = np.array(galaxy["ar_flag_special2"])
+        pa_flag_special2_array  = np.array(galaxy["pa_flag_special2"]) 
 
     #to see which analyses converge from the ones with the normal mask
     if single_or_double == 1:
@@ -228,8 +242,9 @@ for gal_dict in gal_list:
             filter_chi2 = analyses_to_take_boolean #if only a single valid element, I take it as the best analysis
         filter_result = filter_chi2
     else:
-        filter_chi2nu = chi2nu_array == chi2nu_array.min() #if no good analysis for the normal masks, I take all masks
-        filter_result = filter_chi2nu
+        if len(chi2nu_array) != 0:
+            filter_chi2nu = chi2nu_array == chi2nu_array.min() #if no good analysis for the normal masks, I take all masks
+            filter_result = filter_chi2nu
 
 
     index_best_result = np.where(filter_result)
@@ -240,6 +255,8 @@ for gal_dict in gal_list:
 
 
     vector_gal_name = np.append(vector_gal_name,galaxy["id"])
+    vector_zz       = np.append(vector_zz      ,galaxy["zz"])
+    kpc_per_arcsec = 1./cosmo.arcsec_per_kpc_proper(galaxy["zz"])
     #is there any object in the central pixels of the image?
     img = fits.open("../../galaxy_images/"+galaxy["id"]+".fits")
     hdr = img[0].header
@@ -269,6 +286,8 @@ for gal_dict in gal_list:
             vector_nnerr  = np.append(vector_nnerr,  np.std(galaxy["nn"]) )
             vector_arerr  = np.append(vector_arerr,  np.std(galaxy["ar"]) )
             vector_paerr  = np.append(vector_paerr,  np.std(galaxy["pa"]) )
+            vector_re_kpc     = np.append(vector_re_kpc,      galaxy["re"][index]*pix_scale*kpc_per_arcsec)
+            vector_reerr_kpc  = np.append(vector_reerr_kpc,  np.std(galaxy["re"])*pix_scale*kpc_per_arcsec)
         else:
             vector_mag1 = np.append(vector_mag1, galaxy["mag1"][index] )
             vector_re1  = np.append(vector_re1,  galaxy["re1"][index] )
@@ -290,6 +309,10 @@ for gal_dict in gal_list:
             vector_nnerr2 = np.append(vector_nnerr2,  np.std(galaxy["nn2"]) )
             vector_arerr2 = np.append(vector_arerr2,  np.std(galaxy["ar2"]) )
             vector_paerr2 = np.append(vector_paerr2,  np.std(galaxy["pa2"]) )
+            vector_re1_kpc     = np.append(vector_re_kpc1,      galaxy["re1"][index]*pix_scale*kpc_per_arcsec)
+            vector_re2_kpc     = np.append(vector_re_kpc2,      galaxy["re2"][index]*pix_scale*kpc_per_arcsec)
+            vector_reerr1_kpc  = np.append(vector_reerr1_kpc,  np.std(galaxy["re1"])*pix_scale*kpc_per_arcsec)
+            vector_reerr2_kpc  = np.append(vector_reerr2_kpc,  np.std(galaxy["re2"])*pix_scale*kpc_per_arcsec)
     else:
         if single_or_double == 1:
             vector_mag = np.append(vector_mag, float('NaN') )
@@ -302,6 +325,8 @@ for gal_dict in gal_list:
             vector_nnerr  = np.append(vector_nnerr,  float('NaN') )
             vector_arerr  = np.append(vector_arerr,  float('NaN') )
             vector_paerr  = np.append(vector_paerr,  float('NaN') )
+            vector_re_kpc = np.append(vector_re_kpc, float('NaN') )
+            vector_reerr_kpc = np.append(vector_reerr_kpc, float('NaN') )
         else:
             vector_mag1 = np.append(vector_mag1, float('NaN') )
             vector_re1  = np.append(vector_re1,  float('NaN') )
@@ -323,17 +348,23 @@ for gal_dict in gal_list:
             vector_nnerr2  = np.append(vector_nnerr2,  float('NaN') )
             vector_arerr2  = np.append(vector_arerr2,  float('NaN') )
             vector_paerr2  = np.append(vector_paerr2,  float('NaN') )
+            vector_re1_kpc     = np.append(vector_re1_kpc,     float('NaN') )
+            vector_reerr1_kpc  = np.append(vector_reerr1_kpc,  float('NaN') )
+            vector_re2_kpc     = np.append(vector_re2_kpc,     float('NaN') )
+            vector_reerr2_kpc  = np.append(vector_reerr2_kpc,  float('NaN') )
 
 
 #writing the final catalogs
 if single_or_double == 1:
-    data = Table( [vector_gal_name,vector_mag,vector_magerr,vector_re,vector_reerr,vector_nn,vector_nnerr,vector_ar,vector_arerr,vector_pa,vector_paerr,vector_flag_obj_detected], \
-                  names=("gal_id","mag","mag_error","re_pix","re_pix_error","n","n_error","ar","ar_error","pa","pa_error","flag_obj_detected") )
+    data = Table( [vector_gal_name,vector_zz,vector_mag,vector_magerr,vector_re,vector_reerr,vector_re_kpc,vector_reerr_kpc,vector_nn,vector_nnerr,\
+                   vector_ar,vector_arerr,vector_pa,vector_paerr,vector_flag_obj_detected], \
+                   names=("gal_id","zz","mag","mag_error","re_pix","re_pix_error","re_kpc","re_kpc_err","n","n_error",\
+                         "ar","ar_error","pa","pa_error","flag_obj_detected") )
 else:
-    data = Table( [vector_gal_name1,vector_mag1,vector_magerr1,vector_re1,vector_reerr1,vector_nn1,vector_nnerr,vector_ar1,vector_arerr1,vector_pa1,vector_paerr1,vector_mag2,vector_magerr2,vector_re2,vector_reerr2,vector_nn2,vector_nnerr2,vector_ar2,vector_arerr2,vector_pa2,vector_paerr2,vector_flag_obj_detected], \
-                  names=("gal_id1","mag1","mag_error1","re_pix1","re_pix_error1","n1","n_error1","ar1","ar_error1","pa1","pa_error1", \
-                                   "mag2","mag_error2","re_pix2","re_pix_error2","n2","n_error2","ar2","ar_error2","pa2","pa_error2", \
-                         "flag_obj_detected") )
+    data = Table( [vector_gal_name,vector_zz,vector_mag1,vector_magerr1,vector_re1,vector_reerr1,vector_re1_kpc,vector_reerr1_kpc,vector_nn1,vector_nnerr,\
+                   vector_ar1,vector_arerr1,vector_pa1,vector_paerr1,vector_mag2,vector_magerr2,vector_re2,vector_reerr2,\
+                   vector_re2_kpc,vector_reerr2_kpc,vector_nn2,vector_nnerr2,vector_ar2,vector_arerr2,vector_pa2,vector_paerr2,vector_flag_obj_detected], \
+                   names=("gal_id","zz","mag1","mag_error1","re_pix1","re_pix_error1","re_pix1_kpc","re_kpc_error1","n1","n_error1",\
+                         "ar1","ar_error1","pa1","pa_error1", "mag2","mag_error2","re_pix2","re_pix_error2",\
+                         "n2","n_error2","ar2","ar_error2","pa2","pa_error2","flag_obj_detected") )
 data.write('results_cpu'+cpu_number+'.cat', format='ascii.commented_header')
-
-pdb.set_trace()
