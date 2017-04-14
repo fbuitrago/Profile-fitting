@@ -35,13 +35,23 @@ def unmask_obj(primary_mask,x_size,y_size,xc,yc,axis_ratio,position_angle,a_imag
     return(primary_mask)
 
 def create_central_mask(galaxy,sex_output,target,enlargemask):
-    objs  = sex_output[0,:]
-    xc    = sex_output[5,:]
-    yc    = sex_output[6,:]
-    ellip = sex_output[8,:]
-    theta = sex_output[9,:]
-    kron  = sex_output[10,:]
-    a_image = sex_output[11,:]
+
+    if sex_output.ndim > 1:
+        objs  = sex_output[0,:]
+        xc    = sex_output[5,:]
+        yc    = sex_output[6,:]
+        ellip = sex_output[8,:]
+        theta = sex_output[9,:]
+        kron  = sex_output[10,:]
+        a_image = sex_output[11,:]
+    else:
+        objs  = np.array([sex_output[0]])
+        xc    = np.array([sex_output[5]])
+        yc    = np.array([sex_output[6]])
+        ellip = np.array([sex_output[8]])
+        theta = np.array([sex_output[9]])
+        kron  = np.array([sex_output[10]])
+        a_image = np.array([sex_output[11]])
 
     img = fits.open("../../galaxy_images/"+galaxy+".fits")
     header = img[0].header
