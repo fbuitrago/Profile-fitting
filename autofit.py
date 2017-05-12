@@ -25,21 +25,22 @@ from config_different_fields import config_different_fields
 
 #definitions=======================
 SExtractor_config_file = "wfc3_H.sex"
-zeropoint = 25.96
-single_or_double = 1 #2 #single or double component fit
-bulge_disk_decomp = False
+zeropoint = 30.
+single_or_double = 2 #2 #single or double component fit
+bulge_disk_decomp = True
 flag_mask_central = True #if False we skip the creation of central mask (a mask containing only the central obj, good for overcrowded fields)
-enlarge_radius_close_objs = 6.
+enlarge_radius_close_objs = 4.
 enlarge_masks = 3.
-threshold_for_faint = 3. #mag greater than the target galaxy
-pixel_scale = 0.06 #[arcsec/pix]
+threshold_for_faint = 1.5 #mag greater than the target galaxy
+pixel_scale = 0.339 #[arcsec/pix]
 exptime = 1. #it will be override by the EXPTIME keyword in the header (if it exists)
-different_fields = True
-camera = "WFC3"
+different_fields = False
+camera = "ACS"
+number_ini_conds = 2
 #==================================
 
 #PSF stars=========================
-stars = np.array(["star_h_band_candels"],dtype=str) #don't add extension .fits
+stars = np.array(["star319149"],dtype=str) #don't add extension .fits
 #==================================
 
 #knowing the galaxies to run GALFIT
@@ -49,7 +50,7 @@ cpu_number = last_folder.replace("cpu","")
 catalog_name = "./aux_files/gals_cpu"+cpu_number+".cat"
 #reading the catalog
 tt = Table.read(catalog_name, names=('ids','nothing'), format='ascii.commented_header')
-ids = tt['ids']
+ids = np.array(tt['ids'],dtype=str)
 
 #for each galaxy
 for ii in range(ids.size):
@@ -60,6 +61,7 @@ for ii in range(ids.size):
     header = img[0].header
     x_size  = header['NAXIS1']
     y_size  = header['NAXIS2']
+    exptime = header['EXPTIME']
     
     #if using different fields
     if different_fields == True:
@@ -99,8 +101,9 @@ for ii in range(ids.size):
 
     for star_cont in range(len(stars)):
         for mask_cont in range(len(masks)):
-            galfit_script = write_galfit_script(galaxy,stars[star_cont],masks[mask_cont],x_size,y_size,zeropoint,exptime,pixel_scale,sex_output,target,single_or_double,bulge_disk_decomp,filter_objs)
-            os.chdir(cwd+"/"+galaxy+"/") #changing the working directory for galfit to store there all its output
-            os.system("galfit "+galfit_script)
-            os.chdir(cwd)
+            for ini_cond_cont in range(number_ini_conds):
+                galfit_script = write_galfit_script(galaxy,stars[star_cont],masks[mask_cont],x_size,y_size,zeropoint,exptime,pixel_scale,sex_output,target,single_or_double,bulge_disk_decomp,filter_objs,ini_cond_cont)
+                os.chdir(cwd+"/"+galaxy+"/") #changing the working directory for galfit to store there all its output
+                os.system("galfit "+galfit_script)
+                os.chdir(cwd)
             
