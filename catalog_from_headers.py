@@ -208,11 +208,11 @@ for ii in range(len(galaxies)):
                         gal["pa1"] .append(float('NaN'));  gal["pa_flag_special1"].append(float('NaN'));  gal["pa_flag_fixed1"].append(float('NaN'))
                         gal["xc2"] .append(float('NaN'))
                         gal["yc2"] .append(float('NaN'))
-                        gal["mag1"].append(float('NaN')); gal["mag_flag_special2"].append(float('NaN')); gal["mag_flag_fixed2"].append(float('NaN'))
-                        gal["re1"] .append(float('NaN'));  gal["re_flag_special2"].append(float('NaN'));  gal["re_flag_fixed2"].append(float('NaN'))
-                        gal["nn1"] .append(float('NaN'));  gal["nn_flag_special2"].append(float('NaN'));  gal["nn_flag_fixed2"].append(float('NaN'))
-                        gal["ar1"] .append(float('NaN'));  gal["ar_flag_special2"].append(float('NaN'));  gal["ar_flag_fixed2"].append(float('NaN'))
-                        gal["pa1"] .append(float('NaN'));  gal["pa_flag_special2"].append(float('NaN'));  gal["pa_flag_fixed2"].append(float('NaN'))
+                        gal["mag2"].append(float('NaN')); gal["mag_flag_special2"].append(float('NaN')); gal["mag_flag_fixed2"].append(float('NaN'))
+                        gal["re2"] .append(float('NaN'));  gal["re_flag_special2"].append(float('NaN'));  gal["re_flag_fixed2"].append(float('NaN'))
+                        gal["nn2"] .append(float('NaN'));  gal["nn_flag_special2"].append(float('NaN'));  gal["nn_flag_fixed2"].append(float('NaN'))
+                        gal["ar2"] .append(float('NaN'));  gal["ar_flag_special2"].append(float('NaN'));  gal["ar_flag_fixed2"].append(float('NaN'))
+                        gal["pa2"] .append(float('NaN'));  gal["pa_flag_special2"].append(float('NaN'));  gal["pa_flag_fixed2"].append(float('NaN'))
     gal_list.append(gal)
 
 #creating vectors to contain the information in the headers
