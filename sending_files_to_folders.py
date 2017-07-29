@@ -18,20 +18,13 @@ def ids_as_str(ids):
 
 
 no_cpus = 3
-catalog_file = "massive_high_z_bin.cat"
-base_path = "./high_z_galaxy_images/"
+base_path = "./"
 
 
-ids = os.listdir(base_path+"./galaxy_images/")
+ids = os.listdir(base_path+"galaxy_images/")
 ids[:] = [ele[:-5] for ele in ids] #I remove the .fits extension
 ids = np.array(ids, dtype = str)
 ids = np.sort(ids)
-
-#tt = Table.read("massive_low_z_bin.cat", format = "ascii.commented_header", names=('ids', 'ra', 'dec', 'field'))
-#ids = ids_as_str(tt['ids'])
-#ra  = tt['ra']
-#dec = tt['dec']
-#region = tt['field']; region = np.array(region, dtype=str)
 
 no_galaxies = ids.size
 no_gals_per_directory = int(no_galaxies/no_cpus)
@@ -60,15 +53,16 @@ for ii in range(1,no_cpus+1): #+1 because range upper limit otherwise is not inc
             #copyfile("./galaxy_images/"+ids[jj]+".fits"    ,cpu_folder+"/galaxy_images/"+ids[jj]+".fits")
             #copyfile("./sigma_images/" +ids[jj]+"_rms.fits",cpu_folder+"/sigma_images/" +ids[jj]+"_rms.fits")
             if jj == final_value-1: #for the last element
-                data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','nothing'])
+                data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','z'])
                 data.write(cpu_cat, format = "ascii.commented_header")
                 start_value = final_value
         else:
             final_value = no_galaxies #because I will need to add all the restant galaxies to the final folder
             #copyfile("./galaxy_images/"+ids[jj]+".fits"    ,cpu_folder+"/galaxy_images/"+ids[jj]+".fits")
             #copyfile("./sigma_images/" +ids[jj]+"_rms.fits",cpu_folder+"/sigma_images/" +ids[jj]+"_rms.fits")
-            if jj == final_value-1: #for the last element 
-                data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','nothing'])
-                data.write(cpu_cat, format = "ascii.commented_header")
-                #start_value = final_value -> This is not necessary, as it is the final folder
+            
+            data = Table([ids[start_value:final_value],np.zeros(final_value-start_value)], names=['gal','z']) #in the very moment I enter in the last folder, I can finish because I know the start value and final value
+            data.write(cpu_cat, format = "ascii.commented_header")
+            break
+                
         
