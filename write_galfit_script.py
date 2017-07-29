@@ -12,13 +12,13 @@ def write_galfit_script(galaxy,star,mask,x_size,y_size,zeropoint,exptime,pixel_s
         kron  = sex_output[10,:]
         a_image = sex_output[11,:]
     else:
-        mag   = np.array([sex_output[3,:]])
-        xc    = np.array([sex_output[5,:]])
-        yc    = np.array([sex_output[6,:]])
-        ellip = np.array([sex_output[8,:]])
-        theta = np.array([sex_output[9,:]])
-        kron  = np.array([sex_output[10,:]])
-        a_image = np.array([sex_output[11,:]])
+        mag   = np.array([sex_output[3]])
+        xc    = np.array([sex_output[5]])
+        yc    = np.array([sex_output[6]])
+        ellip = np.array([sex_output[8]])
+        theta = np.array([sex_output[9]])
+        kron  = np.array([sex_output[10]])
+        a_image = np.array([sex_output[11]])
 
     #translating from SExtractor parameters to GALFIT parameters
     galfit_zeropoint = zeropoint-2.5*np.log10(exptime)
